@@ -11,7 +11,7 @@ on a compute instance:
 
 ![App template](images/risico_app.png)
 
-The associated workflow created first a Virtual Machine.
+The associated workflow creates first a Virtual Machine.
 Then downloads in parallel GFS and geographical data files.
 Docker is then installed on the Virtual Machine and the WPS GPS pre-processing container is run.
 
