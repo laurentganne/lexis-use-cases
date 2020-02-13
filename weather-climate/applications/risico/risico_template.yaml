@@ -17,6 +17,11 @@ imports:
   - org.ystia.docker.ansible:2.2.0-SNAPSHOT
 
 topology_template:
+  inputs:
+    preprocessing_output_directory:
+      type: string
+      description: Directory where preprocessing results will be stored
+      default: /wps_data/output
   node_templates:
     PublicNet:
       type: tosca.nodes.Network
@@ -107,7 +112,41 @@ topology_template:
             node: VirtualMachine
             capability: tosca.capabilities.Container
             relationship: tosca.relationships.HostedOn
-
+    WRF:
+      type: org.heappe.nodes.Job
+      properties:
+        jobSpecification: 
+          name: testJobName
+          project: testProjectName
+          clusterNodeTypeId: 1
+          priority: 4
+          minCores: 1
+          maxCores: 1
+          waitingLimit: 600
+          walltimeLimit: 600
+          tasks: 
+            - name: testTaskName
+              commandTemplateId: 1
+              templateParameterValues: 
+                - commandParameterIdentifier: inputParam
+                  parameterValue: inputParam
+              minCores: 1
+              maxCores: 1
+              walltimeLimit: 600
+              standardOutputFile: "console_Stdout"
+              standardErrorFile: "console_Stderr"
+              progressFile: "console_Stdprog"
+              logFile: "console_Stdlog"
+    CopyToJob:
+      type: org.lexis.datatransfer.nodes.CopyToJob
+      properties:
+        source_directory: {get_input: preprocessing_output_directory}
+      requirements:
+        - hostedOnVirtualMachineHost:
+            type_requirement: host
+            node: VirtualMachine
+            capability: tosca.capabilities.Container
+            relationship: tosca.relationships.HostedOn
   workflows:
     install:
       steps:
@@ -115,6 +154,17 @@ topology_template:
           target: PublicNet
           activities:
             - delegate: install
+        WRF_create:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: Standard.create
+          on_success:
+            - WRF_started
+        WRF_started:
+          target: WRF
+          activities:
+            - set_state: started
     uninstall:
       steps:
         Docker_stop:
@@ -139,6 +189,17 @@ topology_template:
           target: PublicNet
           activities:
             - delegate: uninstall
+        WRF_delete:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: Standard.delete
+          on_success:
+            - WRF_deleted
+        WRF_deleted:
+          target: WRF
+          activities:
+            - set_state: deleted
     run:
       steps:
         Compute_install:
@@ -212,6 +273,107 @@ topology_template:
           target: WPS_GFS
           activities:
             - set_state: started
+          on_success:
+            - WRF_enable_file_transfer
+        WRF_enable_file_transfer:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: custom.enable_file_transfer
+          on_success:
+            - CopyToJob_start        
+        CopyToJob_start:
+          target: CopyToJob
+          activities:
+            - call_operation: Standard.start
+          on_success:
+            - CopyToJob_started
+        CopyToJob_started:
+          target: CopyToJob
+          activities:
+            - set_state: started
+          on_success:
+            - WRF_submit
+            - WRF_disable_file_transfer
+        WRF_disable_file_transfer:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: custom.disable_file_transfer
+        WRF_submit:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: tosca.interfaces.node.lifecycle.Runnable.submit
+          on_success:
+            - Job_submitted
+        WRF_submitted:
+          target: WRF
+          activities:
+            - set_state: submitted
+          on_success:
+            - WRF_run
+        WRF_run:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: tosca.interfaces.node.lifecycle.Runnable.run
+          on_success:
+            - Job_executed
+        WRF_executed:
+          target: WRF
+          activities:
+            - set_state: executed
+    testcopy:
+        WRF_enable_file_transfer:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: custom.enable_file_transfer
+          on_success:
+            - CopyToJob_start        
+        CopyToJob_start:
+          target: CopyToJob
+          activities:
+            - call_operation: Standard.start
+          on_success:
+            - CopyToJob_started
+        CopyToJob_started:
+          target: CopyToJob
+          activities:
+            - set_state: started
+          on_success:
+            - WRF_submit
+            - WRF_disable_file_transfer
+        WRF_disable_file_transfer:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: custom.disable_file_transfer
+        WRF_submit:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: tosca.interfaces.node.lifecycle.Runnable.submit
+          on_success:
+            - Job_submitted
+        WRF_submitted:
+          target: WRF
+          activities:
+            - set_state: submitted
+          on_success:
+            - WRF_run
+        WRF_run:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: tosca.interfaces.node.lifecycle.Runnable.run
+          on_success:
+            - Job_executed
+        WRF_executed:
+          target: WRF
+          activities:
+            - set_state: executed
     start:
       steps:
         start_step:

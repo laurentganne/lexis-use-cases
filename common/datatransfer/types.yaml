@@ -1,0 +1,40 @@
+tosca_definitions_version: yorc_tosca_simple_yaml_1_0
+
+metadata:
+  template_name: org.lexis.datatransfer
+  template_version: 0.1.0
+  template_author: lexis
+
+imports:
+  - yorc-types:1.1.0
+node_types:
+  org.lexis.datatransfer.nodes.CopyToJob:
+    derived_from: tosca.nodes.SoftwareComponent
+    abstract: true
+    description: >
+      Copy files to a HEAppE Job input directory
+    properties:
+      source_directory:
+        description: Directory containing files to copy
+        type: string
+        required: true
+    requirements:
+      - job:
+          capability: org.heappe.capabilities.HeappeJob
+          node: org.heappe.nodes.Job
+          relationship: org.heappe.relationships.SendInputsToJob
+          occurrences: [1, 1]
+    interfaces:
+      Standard:
+        create:
+          implementation: playbooks/noop.yaml
+        start:
+          inputs:
+            user: {get_attribute: [REQ_TARGET, job, filetransfer, user]}
+            private_key: {get_property: [REQ_TARGET, job, filetransfer, key]}
+            server: {get_property: [REQ_TARGET, job, filetransfer, server]}
+            destination_directory: {get_property: [REQ_TARGET, job, filetransfer, path]}
+            source_directory: {get_property: [SELF, source_directory]}
+          implementation: playbooks/copytojob.yaml
+    tags:
+      icon: images/copytojob.png
