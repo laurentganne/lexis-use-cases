@@ -12,9 +12,11 @@ imports:
   - tosca-normative-types:1.0.0-ALIEN20
   - docker-types:2.2.0-SM10
   - alien-base-types:2.2.0-SM10
-  - wps-types:0.1.0
+  - heappe-types:0.1.0
   - org.ystia.docker.containers.docker.generic:2.2.0-SNAPSHOT
   - org.ystia.docker.ansible:2.2.0-SNAPSHOT
+  - org.lexis.common.datatransfer:0.1.0
+  - org.lexis.weather.wps:0.1.0
 
 topology_template:
   inputs:
@@ -147,6 +149,11 @@ topology_template:
             node: VirtualMachine
             capability: tosca.capabilities.Container
             relationship: tosca.relationships.HostedOn
+        - job:
+            type_requirement: job
+            node: WRF
+            capability: org.heappe.capabilities.HeappeJob
+            relationship: org.heappe.relationships.GetResultsFromJob
   workflows:
     install:
       steps:
@@ -200,7 +207,7 @@ topology_template:
           target: WRF
           activities:
             - set_state: deleted
-    run:
+    Run:
       steps:
         Compute_install:
           target: VirtualMachine
@@ -281,7 +288,7 @@ topology_template:
           activities:
             - call_operation: custom.enable_file_transfer
           on_success:
-            - CopyToJob_start        
+            - CopyToJob_start
         CopyToJob_start:
           target: CopyToJob
           activities:
@@ -306,7 +313,7 @@ topology_template:
           activities:
             - call_operation: tosca.interfaces.node.lifecycle.Runnable.submit
           on_success:
-            - Job_submitted
+            - WRF_submitted
         WRF_submitted:
           target: WRF
           activities:
@@ -319,12 +326,13 @@ topology_template:
           activities:
             - call_operation: tosca.interfaces.node.lifecycle.Runnable.run
           on_success:
-            - Job_executed
+            - WRF_executed
         WRF_executed:
           target: WRF
           activities:
             - set_state: executed
     testcopy:
+      steps:
         WRF_enable_file_transfer:
           target: WRF
           operation_host: ORCHESTRATOR
@@ -356,7 +364,7 @@ topology_template:
           activities:
             - call_operation: tosca.interfaces.node.lifecycle.Runnable.submit
           on_success:
-            - Job_submitted
+            - WRF_submitted
         WRF_submitted:
           target: WRF
           activities:
@@ -369,7 +377,7 @@ topology_template:
           activities:
             - call_operation: tosca.interfaces.node.lifecycle.Runnable.run
           on_success:
-            - Job_executed
+            - WRF_executed
         WRF_executed:
           target: WRF
           activities:
