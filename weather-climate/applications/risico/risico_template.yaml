@@ -76,8 +76,8 @@ topology_template:
             - /wps_data/output:/output
             - /wps_data/geog/WPS_GEOG:/geogrid
         docker_env_vars: 
-          WPS_START_DATE: "2020020712"
-          WPS_END_DATE: "2020020715"
+          WPS_START_DATE: "2020021712"
+          WPS_END_DATE: "2020021715"
       requirements:
         - hostedOnContainerRuntimeDockerHost:
             type_requirement: host
@@ -153,7 +153,7 @@ topology_template:
             type_requirement: job
             node: WRF
             capability: org.heappe.capabilities.HeappeJob
-            relationship: org.heappe.relationships.GetResultsFromJob
+            relationship: org.heappe.relationships.SendInputsToJob
   workflows:
     install:
       steps:

@@ -9,15 +9,15 @@
       register: privatekeyfile
     - name: Add private key content
       copy:
-        content: {{ private_key }}
-        dest: {{ privatekeyfile.path }}
+        content: "{{ private_key }}"
+        dest: "{{ privatekeyfile.path }}"
     - name: Change file ownership
       file:
-        path: {{ privatekey.path }}
+        path: "{{ privatekeyfile.path }}"
         mode: '0400'    
     - name: "Copying directory {{ file_dir }} content to job inputs"
       shell: "scp -r -i {{ privatekeyfile.path }} {{ source_directory }}/* {{ user }}@{{ server }}:{{ destination_directory }}"
     - name: Remove private key
       file:
-        path: {{ privatekey.path }}
+        path: "{{ privatekeyfile.path }}"
         state: absent
