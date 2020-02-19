@@ -1,4 +1,4 @@
-# LEXIS weather and climate applications
+# LEXIS workflows
 
 TOSCA components and application templates for LEXIS use cases.
 
