@@ -24,6 +24,10 @@ topology_template:
       type: string
       description: Directory where preprocessing results will be stored
       default: /wps_data/output
+    postprocessing_input_directory:
+      type: string
+      description: Directory where postprocessing data will be stored
+      default: /risico_data/
   node_templates:
     PublicNet:
       type: tosca.nodes.Network
@@ -154,6 +158,51 @@ topology_template:
             node: WRF
             capability: org.heappe.capabilities.HeappeJob
             relationship: org.heappe.relationships.SendInputsToJob
+    CopyFromJob:
+      type: org.lexis.datatransfer.nodes.CopyFromJob
+      properties:
+        source_files_pattern: "auxhist*"
+        destination_directory:  { concat: [get_input: postprocessing_input_directory, "/wrf"] }
+      requirements:
+        - hostedOnVirtualMachineHost:
+            type_requirement: host
+            node: VirtualMachine
+            capability: tosca.capabilities.Container
+            relationship: tosca.relationships.HostedOn
+        - job:
+            type_requirement: job
+            node: WRF
+            capability: org.heappe.capabilities.HeappeJob
+            relationship: org.heappe.relationships.GetResultsFromJob
+    RISICO:
+      type: org.ystia.docker.containers.docker.generic.nodes.GenericContainer
+      properties:
+        auto_remove: false
+        cleanup: false
+        detach: true
+        image: "laurentg/risico"
+        keep_volumes: true
+        restart_policy: no
+        cpu_share: 1.0
+        mem_share: "128 MB"
+        volumes:
+            - /risico_data/:/input
+            - /wps_data/output:/output
+            - /wps_data/geog/WPS_GEOG:/geogrid
+        docker_env_vars:
+          RISICO_RUN_DATE: "202002170000"
+      requirements:
+        - hostedOnContainerRuntimeDockerHost:
+            type_requirement: host
+            node: Docker
+            capability: org.alien4cloud.extended.container.capabilities.ApplicationHost
+            relationship: org.alien4cloud.extended.container.relationships.HostedOnContainerRuntime
+      capabilities:
+        scalable:
+          properties:
+            min_instances: 1
+            max_instances: 1
+            default_instances: 1
   workflows:
     install:
       steps:
@@ -301,12 +350,6 @@ topology_template:
             - set_state: started
           on_success:
             - WRF_submit
-            - WRF_disable_file_transfer
-        WRF_disable_file_transfer:
-          target: WRF
-          operation_host: ORCHESTRATOR
-          activities:
-            - call_operation: custom.disable_file_transfer
         WRF_submit:
           target: WRF
           operation_host: ORCHESTRATOR
@@ -331,6 +374,40 @@ topology_template:
           target: WRF
           activities:
             - set_state: executed
+        CopyFromJob_start:
+          target: CopyFromJob
+          activities:
+            - call_operation: Standard.start
+          on_success:
+            - CopyFromJob_started
+        CopyFromJob_started:
+          target: CopyFromJob
+          activities:
+            - set_state: started
+          on_success:
+            - RISICO_create
+            - WRF_disable_file_transfer
+        WRF_disable_file_transfer:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: custom.disable_file_transfer
+        RISICO_create:
+          target: RISICO
+          activities:
+            - call_operation: Standard.create
+          on_success:
+            - RISICO_start
+        RISICO_start:
+          target: RISICO
+          activities:
+            - call_operation: Standard.start
+          on_success:
+            - RISICO_started
+        RISICO_started:
+          target: RISICO
+          activities:
+            - set_state: started
     testcopy:
       steps:
         WRF_enable_file_transfer:
@@ -352,7 +429,6 @@ topology_template:
             - set_state: started
           on_success:
             - WRF_submit
-            - WRF_disable_file_transfer
         WRF_disable_file_transfer:
           target: WRF
           operation_host: ORCHESTRATOR
@@ -382,6 +458,55 @@ topology_template:
           target: WRF
           activities:
             - set_state: executed
+    testpostprocess:
+      steps:
+        CopyFromJob_start:
+          target: CopyFromJob
+          activities:
+            - call_operation: Standard.start
+          on_success:
+            - CopyFromJob_started
+        CopyFromJob_started:
+          target: CopyFromJob
+          activities:
+            - set_state: started
+          on_success:
+            - RISICO_create
+            - WRF_disable_file_transfer
+        RISICO_create:
+          target: RISICO
+          activities:
+            - call_operation: Standard.create
+          on_success:
+            - RISICO_start
+        RISICO_start:
+          target: RISICO
+          activities:
+            - call_operation: Standard.start
+          on_success:
+            - RISICO_started
+        RISICO_started:
+          target: RISICO
+          activities:
+            - set_state: started
+    testrisico:
+      steps:
+        RISICO_create:
+          target: RISICO
+          activities:
+            - call_operation: Standard.create
+          on_success:
+            - RISICO_start
+        RISICO_start:
+          target: RISICO
+          activities:
+            - call_operation: Standard.start
+          on_success:
+            - RISICO_started
+        RISICO_started:
+          target: RISICO
+          activities:
+            - set_state: started
     start:
       steps:
         start_step:
