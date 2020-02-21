@@ -42,6 +42,9 @@ topology_template:
             capability: tosca.capabilities.Connectivity
             relationship: tosca.relationships.Network
       capabilities:
+        host:
+          properties:
+            num_cpus: 10
         scalable:
           properties:
             min_instances: 1
@@ -55,9 +58,6 @@ topology_template:
             initiator: source
     Docker:
       type: org.ystia.docker.ansible.nodes.Docker
-      properties:
-        # TODO: remove the hardcoded docker version, let it empty
-        docker_version: "18.06.3.ce-3.el7"
       requirements:
         - hostedOnVirtualMachineHost:
             type_requirement: host
@@ -69,7 +69,7 @@ topology_template:
       properties:
         auto_remove: false
         cleanup: false
-        detach: true
+        detach: no
         image: "laurentg/wps.gfs"
         keep_volumes: true
         restart_policy: no
@@ -179,7 +179,7 @@ topology_template:
       properties:
         auto_remove: false
         cleanup: false
-        detach: true
+        detach: no
         image: "laurentg/risico"
         keep_volumes: true
         restart_policy: no
@@ -374,6 +374,107 @@ topology_template:
           target: WRF
           activities:
             - set_state: executed
+          on_success:
+            - CopyFromJob_start
+        CopyFromJob_start:
+          target: CopyFromJob
+          activities:
+            - call_operation: Standard.start
+          on_success:
+            - CopyFromJob_started
+        CopyFromJob_started:
+          target: CopyFromJob
+          activities:
+            - set_state: started
+          on_success:
+            - RISICO_create
+            - WRF_disable_file_transfer
+        WRF_disable_file_transfer:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: custom.disable_file_transfer
+        RISICO_create:
+          target: RISICO
+          activities:
+            - call_operation: Standard.create
+          on_success:
+            - RISICO_start
+        RISICO_start:
+          target: RISICO
+          activities:
+            - call_operation: Standard.start
+          on_success:
+            - RISICO_started
+        RISICO_started:
+          target: RISICO
+          activities:
+            - set_state: started
+    testafterinput:
+      steps:
+        WPS_GFS_create:
+          target: WPS_GFS
+          activities:
+            - call_operation: Standard.create
+          on_success:
+            - WPS_GFS_start
+        WPS_GFS_start:
+          target: WPS_GFS
+          activities:
+            - call_operation: Standard.start
+          on_success:
+            - WPS_GFS_started
+        WPS_GFS_started:
+          target: WPS_GFS
+          activities:
+            - set_state: started
+          on_success:
+            - WRF_enable_file_transfer
+        WRF_enable_file_transfer:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: custom.enable_file_transfer
+          on_success:
+            - CopyToJob_start
+        CopyToJob_start:
+          target: CopyToJob
+          activities:
+            - call_operation: Standard.start
+          on_success:
+            - CopyToJob_started
+        CopyToJob_started:
+          target: CopyToJob
+          activities:
+            - set_state: started
+          on_success:
+            - WRF_submit
+        WRF_submit:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: tosca.interfaces.node.lifecycle.Runnable.submit
+          on_success:
+            - WRF_submitted
+        WRF_submitted:
+          target: WRF
+          activities:
+            - set_state: submitted
+          on_success:
+            - WRF_run
+        WRF_run:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: tosca.interfaces.node.lifecycle.Runnable.run
+          on_success:
+            - WRF_executed
+        WRF_executed:
+          target: WRF
+          activities:
+            - set_state: executed
+          on_success:
+            - CopyFromJob_start
         CopyFromJob_start:
           target: CopyFromJob
           activities:
@@ -429,11 +530,6 @@ topology_template:
             - set_state: started
           on_success:
             - WRF_submit
-        WRF_disable_file_transfer:
-          target: WRF
-          operation_host: ORCHESTRATOR
-          activities:
-            - call_operation: custom.disable_file_transfer
         WRF_submit:
           target: WRF
           operation_host: ORCHESTRATOR
@@ -473,6 +569,11 @@ topology_template:
           on_success:
             - RISICO_create
             - WRF_disable_file_transfer
+        WRF_disable_file_transfer:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: custom.disable_file_transfer
         RISICO_create:
           target: RISICO
           activities:
