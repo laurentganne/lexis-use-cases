@@ -186,9 +186,7 @@ topology_template:
         cpu_share: 1.0
         mem_share: "128 MB"
         volumes:
-            - /risico_data/:/input
-            - /wps_data/output:/output
-            - /wps_data/geog/WPS_GEOG:/geogrid
+            - /risico_data/:/home/risico/data
         docker_env_vars:
           RISICO_RUN_DATE: "202002170000"
       requirements:
@@ -312,17 +310,11 @@ topology_template:
           activities:
             - set_state: started
           on_success:
-            - WPS_GFS_create
-        WPS_GFS_create:
+            - WPS_GFS_run
+        WPS_GFS_run:
           target: WPS_GFS
           activities:
-            - call_operation: Standard.create
-          on_success:
-            - WPS_GFS_start
-        WPS_GFS_start:
-          target: WPS_GFS
-          activities:
-            - call_operation: Standard.start
+            - call_operation: custom.run
           on_success:
             - WPS_GFS_started
         WPS_GFS_started:
@@ -387,23 +379,17 @@ topology_template:
           activities:
             - set_state: started
           on_success:
-            - RISICO_create
+            - RISICO_run
             - WRF_disable_file_transfer
         WRF_disable_file_transfer:
           target: WRF
           operation_host: ORCHESTRATOR
           activities:
             - call_operation: custom.disable_file_transfer
-        RISICO_create:
+        RISICO_run:
           target: RISICO
           activities:
-            - call_operation: Standard.create
-          on_success:
-            - RISICO_start
-        RISICO_start:
-          target: RISICO
-          activities:
-            - call_operation: Standard.start
+            - call_operation: custom.run
           on_success:
             - RISICO_started
         RISICO_started:
@@ -412,16 +398,10 @@ topology_template:
             - set_state: started
     testafterinput:
       steps:
-        WPS_GFS_create:
+        WPS_GFS_run:
           target: WPS_GFS
           activities:
-            - call_operation: Standard.create
-          on_success:
-            - WPS_GFS_start
-        WPS_GFS_start:
-          target: WPS_GFS
-          activities:
-            - call_operation: Standard.start
+            - call_operation: custom.run
           on_success:
             - WPS_GFS_started
         WPS_GFS_started:
@@ -486,23 +466,17 @@ topology_template:
           activities:
             - set_state: started
           on_success:
-            - RISICO_create
+            - RISICO_run
             - WRF_disable_file_transfer
         WRF_disable_file_transfer:
           target: WRF
           operation_host: ORCHESTRATOR
           activities:
             - call_operation: custom.disable_file_transfer
-        RISICO_create:
+        RISICO_run:
           target: RISICO
           activities:
-            - call_operation: Standard.create
-          on_success:
-            - RISICO_start
-        RISICO_start:
-          target: RISICO
-          activities:
-            - call_operation: Standard.start
+            - call_operation: custom.run
           on_success:
             - RISICO_started
         RISICO_started:
@@ -567,23 +541,17 @@ topology_template:
           activities:
             - set_state: started
           on_success:
-            - RISICO_create
+            - RISICO_run
             - WRF_disable_file_transfer
         WRF_disable_file_transfer:
           target: WRF
           operation_host: ORCHESTRATOR
           activities:
             - call_operation: custom.disable_file_transfer
-        RISICO_create:
+        RISICO_run:
           target: RISICO
           activities:
-            - call_operation: Standard.create
-          on_success:
-            - RISICO_start
-        RISICO_start:
-          target: RISICO
-          activities:
-            - call_operation: Standard.start
+            - call_operation: custom.run
           on_success:
             - RISICO_started
         RISICO_started:
@@ -592,16 +560,10 @@ topology_template:
             - set_state: started
     testrisico:
       steps:
-        RISICO_create:
+        RISICO_run:
           target: RISICO
           activities:
-            - call_operation: Standard.create
-          on_success:
-            - RISICO_start
-        RISICO_start:
-          target: RISICO
-          activities:
-            - call_operation: Standard.start
+            - call_operation: custom.run
           on_success:
             - RISICO_started
         RISICO_started:

@@ -15,7 +15,7 @@
       file:
         path: "{{ privatekeyfile.path }}"
         mode: '0400'    
-    - name: "Copying directory {{ file_dir }} content to job inputs"
+    - name: "Copying directory {{source_directory}} content to job inputs"
       shell: "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r -i {{ privatekeyfile.path }} {{ source_directory }}/* {{ user }}@{{ server }}:{{ destination_directory }}"
     - name: Remove private key
       file:

@@ -4,13 +4,13 @@
   become: true
   become_method: sudo
   tasks:
-    - name: Create destination directory {{ destination_directory }}
+    - name: "Create destination directory {{destination_directory}}"
       file:
         path: "{{ destination_directory }}"
         state: directory
         recurse: yes
         mode: 0777
-- name: Copying files from job output directory to {{ destination_directory }}
+- name: "Copying files from job output directory to {{destination_directory}}"
   hosts: all
   strategy: linear
   tasks:
@@ -27,7 +27,7 @@
       file:
         path: "{{ privatekeyfile.path }}"
         mode: '0400'    
-    - name: "Copying directory {{ file_dir }} content to job inputs"
+    - name: "Copying job outputs to  {{destination_directory}}"
       shell: "scp -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -r -i {{ privatekeyfile.path }}  {{ user }}@{{ server }}:{{ source_directory }}/{{ source_files_pattern }} {{ destination_directory }}/*"
     - name: Remove private key
       file:
