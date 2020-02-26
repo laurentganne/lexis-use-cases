@@ -10,12 +10,6 @@
         state: directory
         recurse: yes
         mode: 0777
-    - name: Temporary step creating /wps_data/output
-      file:
-        path: /wps_data/output
-        state: directory
-        recurse: yes
-        mode: 0777
 - name: Get GFS data
   hosts: all
   strategy: free

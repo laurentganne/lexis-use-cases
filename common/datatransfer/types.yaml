@@ -72,3 +72,21 @@ node_types:
           implementation: playbooks/copyfromjob.yaml
     tags:
       icon: images/copyfromjob.png
+  org.lexis.datatransfer.nodes.CreateDirectories:
+    derived_from: tosca.nodes.SoftwareComponent
+    description: Create directories on a target
+    properties:
+      directories:
+        type: list
+        entry_schema:
+          type: string
+        description: List of directory to create
+        required: true
+    interfaces:
+      Standard:
+        create:
+          implementation: playbooks/noop.yaml
+        start:
+          inputs:
+            dirs_to_create: {get_property: [SELF, directories]}
+          implementation: playbooks/createdirs.yaml

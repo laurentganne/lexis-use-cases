@@ -20,10 +20,29 @@ imports:
 
 topology_template:
   inputs:
+    preprocessing_volumes:
+      type: list
+      entry_schema:
+        type: string
+      description: |
+        List of volumes to mount within the pre-processing container.
+        Use docker CLI-style syntax: /host:/container[:mode]
+      default: ["/wps_data/gfs:/input", "/wps_data/output:/output", "/wps_data/geog/WPS_GEOG:/geogrid"]
+    preprocessing_environment_variables:
+      type: map
+      entry_schema:
+        type: string
+      description: |
+        Environment variables for the pre-processing container.
+      default: { WPS_START_DATE: "2020021712", WPS_END_DATE: "2020021715"}
     preprocessing_output_directory:
       type: string
       description: Directory where preprocessing results will be stored
       default: /wps_data/output
+    preprocessing_image:
+      type: string
+      description: Container repository path
+      default: "laurentg/wps.gfs"
     postprocessing_input_directory:
       type: string
       description: Directory where postprocessing data will be stored
@@ -64,24 +83,29 @@ topology_template:
             node: VirtualMachine
             capability: tosca.capabilities.Container
             relationship: tosca.relationships.HostedOn
+    CreateDirs:
+      type: org.lexis.datatransfer.nodes.CreateDirectories
+      properties:
+        directories: {get_input: preprocessing_volumes}
+      requirements:
+        - hostedOnVirtualMachineHost:
+            type_requirement: host
+            node: VirtualMachine
+            capability: tosca.capabilities.Container
+            relationship: tosca.relationships.HostedOn
     WPS_GFS:
       type: org.ystia.docker.containers.docker.generic.nodes.GenericContainer
       properties:
         auto_remove: false
         cleanup: false
-        detach: no
-        image: "laurentg/wps.gfs"
+        detach: false
+        image: {get_input: preprocessing_image}
         keep_volumes: true
         restart_policy: no
         cpu_share: 1.0
         mem_share: "128 MB"
-        volumes:
-            - /wps_data/gfs:/input
-            - /wps_data/output:/output
-            - /wps_data/geog/WPS_GEOG:/geogrid
-        docker_env_vars: 
-          WPS_START_DATE: "2020021712"
-          WPS_END_DATE: "2020021715"
+        volumes: {get_input: preprocessing_volumes}
+        docker_env_vars:  {get_input: preprocessing_environment_variables}
       requirements:
         - hostedOnContainerRuntimeDockerHost:
             type_requirement: host
@@ -179,7 +203,7 @@ topology_template:
       properties:
         auto_remove: false
         cleanup: false
-        detach: no
+        detach: false
         image: "laurentg/risico"
         keep_volumes: true
         restart_policy: no
@@ -261,6 +285,18 @@ topology_template:
           activities:
             - delegate: install
           on_success:
+            - CreateDirs_start
+        CreateDirs_start:
+          target: CreateDirs
+          activities:
+            - call_operation: Standard.start
+          on_success:
+            - CreateDirs_started
+        CreateDirs_started:
+          target: CreateDirs
+          activities:
+            - set_state: started
+          on_success:
             - GFSData_download
             - GEOGData_download
         GFSData_download:
@@ -310,11 +346,17 @@ topology_template:
           activities:
             - set_state: started
           on_success:
-            - WPS_GFS_run
-        WPS_GFS_run:
+            - WPS_GFS_create
+        WPS_GFS_create:
           target: WPS_GFS
           activities:
-            - call_operation: custom.run
+            - call_operation: Standard.create
+          on_success:
+            - WPS_GFS_start
+        WPS_GFS_start:
+          target: WPS_GFS
+          activities:
+            - call_operation: Standard.start
           on_success:
             - WPS_GFS_started
         WPS_GFS_started:
@@ -379,17 +421,23 @@ topology_template:
           activities:
             - set_state: started
           on_success:
-            - RISICO_run
+            - RISICO_create
             - WRF_disable_file_transfer
         WRF_disable_file_transfer:
           target: WRF
           operation_host: ORCHESTRATOR
           activities:
             - call_operation: custom.disable_file_transfer
-        RISICO_run:
+        RISICO_create:
           target: RISICO
           activities:
-            - call_operation: custom.run
+            - call_operation: Standard.create
+          on_success:
+            - RISICO_start
+        RISICO_start:
+          target: RISICO
+          activities:
+            - call_operation: Standard.start
           on_success:
             - RISICO_started
         RISICO_started:
@@ -398,10 +446,16 @@ topology_template:
             - set_state: started
     testafterinput:
       steps:
-        WPS_GFS_run:
+        WPS_GFS_create:
           target: WPS_GFS
           activities:
-            - call_operation: custom.run
+            - call_operation: Standard.create
+          on_success:
+            - WPS_GFS_start
+        WPS_GFS_start:
+          target: WPS_GFS
+          activities:
+            - call_operation: Standard.start
           on_success:
             - WPS_GFS_started
         WPS_GFS_started:
@@ -466,21 +520,45 @@ topology_template:
           activities:
             - set_state: started
           on_success:
-            - RISICO_run
+            - RISICO_create
             - WRF_disable_file_transfer
         WRF_disable_file_transfer:
           target: WRF
           operation_host: ORCHESTRATOR
           activities:
             - call_operation: custom.disable_file_transfer
-        RISICO_run:
+        RISICO_create:
           target: RISICO
           activities:
-            - call_operation: custom.run
+            - call_operation: Standard.create
+          on_success:
+            - RISICO_start
+        RISICO_start:
+          target: RISICO
+          activities:
+            - call_operation: Standard.start
           on_success:
             - RISICO_started
         RISICO_started:
           target: RISICO
+          activities:
+            - set_state: started
+    testcontainercreatestart:
+      steps:
+        WPS_GFS_create:
+          target: WPS_GFS
+          activities:
+            - call_operation: Standard.create
+          on_success:
+            - WPS_GFS_start
+        WPS_GFS_start:
+          target: WPS_GFS
+          activities:
+            - call_operation: Standard.start
+          on_success:
+            - WPS_GFS_started
+        WPS_GFS_started:
+          target: WPS_GFS
           activities:
             - set_state: started
     testcopy:
@@ -541,17 +619,23 @@ topology_template:
           activities:
             - set_state: started
           on_success:
-            - RISICO_run
+            - RISICO_create
             - WRF_disable_file_transfer
         WRF_disable_file_transfer:
           target: WRF
           operation_host: ORCHESTRATOR
           activities:
             - call_operation: custom.disable_file_transfer
-        RISICO_run:
+        RISICO_create:
           target: RISICO
           activities:
-            - call_operation: custom.run
+            - call_operation: Standard.create
+          on_success:
+            - RISICO_start
+        RISICO_start:
+          target: RISICO
+          activities:
+            - call_operation: Standard.start
           on_success:
             - RISICO_started
         RISICO_started:
@@ -560,10 +644,16 @@ topology_template:
             - set_state: started
     testrisico:
       steps:
-        RISICO_run:
+        RISICO_create:
           target: RISICO
           activities:
-            - call_operation: custom.run
+            - call_operation: Standard.create
+          on_success:
+            - RISICO_start
+        RISICO_start:
+          target: RISICO
+          activities:
+            - call_operation: Standard.start
           on_success:
             - RISICO_started
         RISICO_started:
