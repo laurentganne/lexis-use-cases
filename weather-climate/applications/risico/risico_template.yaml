@@ -34,7 +34,7 @@ topology_template:
         type: string
       description: |
         Environment variables for the pre-processing container.
-      default: { WPS_START_DATE: "2020021712", WPS_END_DATE: "2020021715"}
+      default: { WPS_START_DATE: "2020022612", WPS_END_DATE: "2020022615"}
     preprocessing_output_directory:
       type: string
       description: Directory where preprocessing results will be stored
@@ -212,7 +212,7 @@ topology_template:
         volumes:
             - /risico_data/:/home/risico/data
         docker_env_vars:
-          RISICO_RUN_DATE: "202002170000"
+          RISICO_RUN_DATE: "202002260000"
       requirements:
         - hostedOnContainerRuntimeDockerHost:
             type_requirement: host
@@ -232,31 +232,8 @@ topology_template:
           target: PublicNet
           activities:
             - delegate: install
-        WRF_create:
-          target: WRF
-          operation_host: ORCHESTRATOR
-          activities:
-            - call_operation: Standard.create
-          on_success:
-            - WRF_started
-        WRF_started:
-          target: WRF
-          activities:
-            - set_state: started
     uninstall:
       steps:
-        Docker_stop:
-          target: Docker
-          activities:
-            - call_operation: Standard.stop
-          on_success:
-            - Docker_deleted
-        Docker_deleted:
-          target: Docker
-          activities:
-            - set_state: deleted
-          on_success:
-            - Compute_uninstall
         Compute_uninstall:
           target: VirtualMachine
           activities:
@@ -267,17 +244,6 @@ topology_template:
           target: PublicNet
           activities:
             - delegate: uninstall
-        WRF_delete:
-          target: WRF
-          operation_host: ORCHESTRATOR
-          activities:
-            - call_operation: Standard.delete
-          on_success:
-            - WRF_deleted
-        WRF_deleted:
-          target: WRF
-          activities:
-            - set_state: deleted
     Run:
       steps:
         Compute_install:
@@ -364,6 +330,13 @@ topology_template:
           activities:
             - set_state: started
           on_success:
+            - WRF_create
+        WRF_create:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: Standard.create
+          on_success:
             - WRF_enable_file_transfer
         WRF_enable_file_transfer:
           target: WRF
@@ -428,6 +401,19 @@ topology_template:
           operation_host: ORCHESTRATOR
           activities:
             - call_operation: custom.disable_file_transfer
+          on_success:
+            - WRF_delete
+        WRF_delete:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: Standard.delete
+          on_success:
+            - WRF_deleted
+        WRF_deleted:
+          target: WRF
+          activities:
+            - set_state: deleted
         RISICO_create:
           target: RISICO
           activities:
@@ -463,6 +449,13 @@ topology_template:
           activities:
             - set_state: started
           on_success:
+            - WRF_create
+        WRF_create:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: Standard.create
+          on_success:
             - WRF_enable_file_transfer
         WRF_enable_file_transfer:
           target: WRF
@@ -527,6 +520,19 @@ topology_template:
           operation_host: ORCHESTRATOR
           activities:
             - call_operation: custom.disable_file_transfer
+          on_success:
+            - WRF_delete
+        WRF_delete:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: Standard.delete
+          on_success:
+            - WRF_deleted
+        WRF_deleted:
+          target: WRF
+          activities:
+            - set_state: deleted
         RISICO_create:
           target: RISICO
           activities:
@@ -626,6 +632,19 @@ topology_template:
           operation_host: ORCHESTRATOR
           activities:
             - call_operation: custom.disable_file_transfer
+          on_success:
+            - WRF_delete
+        WRF_delete:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: Standard.delete
+          on_success:
+            - WRF_deleted
+        WRF_deleted:
+          target: WRF
+          activities:
+            - set_state: deleted
         RISICO_create:
           target: RISICO
           activities:
@@ -642,6 +661,31 @@ topology_template:
           target: RISICO
           activities:
             - set_state: started
+    testcomputeuninstall:
+      steps:
+        Compute_uninstall:
+          target: VirtualMachine
+          activities:
+            - delegate: uninstall
+          on_success:
+            - Network_uninstall
+        Network_uninstall:
+          target: PublicNet
+          activities:
+            - delegate: uninstall
+    testdeletewrf:
+      steps:
+        WRF_delete:
+          target: WRF
+          operation_host: ORCHESTRATOR
+          activities:
+            - call_operation: Standard.delete
+          on_success:
+            - WRF_deleted
+        WRF_deleted:
+          target: WRF
+          activities:
+            - set_state: deleted
     testrisico:
       steps:
         RISICO_create:

@@ -1,5 +1,7 @@
-# LEXIS workflows
+# Application templates
 
-TOSCA components and application templates for LEXIS use cases.
+Application templates and TOSCA components repository.
 
-See first draft of [RISICO application template](weather-climate/applications/risico/).
+Contents:
+* [sample Application Template](sample/)
+* first draft of [RISICO application template](weather-climate/applications/risico/).
