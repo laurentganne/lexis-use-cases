@@ -1,7 +1,7 @@
 # Application templates
 
-Repository of TOSCA Application templates and components.
+Repository of TOSCA components and Application Templates.
 
-Contents:
+## Contents:
 * application template [sample](sample/)
 * first draft of [RISICO application template](weather-climate/applications/risico/).
