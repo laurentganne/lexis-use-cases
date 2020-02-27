@@ -5,8 +5,8 @@ The graphical view of the application template shows the following components ho
 on a Virtual Machine:
 
 * Docker, to run containers
-* WFS_GFS container performing the pre-processing (see [CIMA WPS model](https://github.com/cima-lexis/wps.docker))
-* RISICO container performing the post-processing (see [CIMA RISICO model](https://github.com/cima-lexis/risico-docker))
+* WFS_GFS, container performing the pre-processing (see [CIMA WPS model](https://github.com/cima-lexis/wps.docker))
+* RISICO, container performing the post-processing (see [CIMA RISICO model](https://github.com/cima-lexis/risico-docker))
 * CreateDirs, component creating directories exepcted by containers
 * GFSData, component downloading Global Forecast System files from a web site
 * GEOGData, component downloading geographical files from a web site
