@@ -1,6 +1,6 @@
 # Application templates
 
-Application templates and TOSCA components repository.
+Repository of TOSCA Application templates and components.
 
 Contents:
 * application template [sample](sample/)
